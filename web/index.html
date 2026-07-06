@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>po0 防火墙自动加白 · Surge 模块</title>
+<meta name="description" content="Surge 模块：自动把当前出口 IP 加入 po0 防火墙白名单，支持多 token、蜂窝优化、坑位记账。">
+<style>
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --fg:#1c1e21; --muted:#6b7280;
+  --accent:#2563eb; --accent-fg:#ffffff; --border:#e5e7eb;
+  --code-bg:#eef1f5; --ok:#059669; --warn:#b45309;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1115; --card:#171a21; --fg:#e5e7eb; --muted:#9ca3af;
+    --accent:#3b82f6; --accent-fg:#ffffff; --border:#2a2f3a;
+    --code-bg:#1f242e; --ok:#34d399; --warn:#fbbf24;
+  }
+}
+*{box-sizing:border-box;margin:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;
+  background:var(--bg); color:var(--fg); line-height:1.75;
+}
+.wrap{max-width:720px;margin:0 auto;padding:48px 20px 80px}
+header{margin-bottom:36px}
+h1{font-size:1.9rem;line-height:1.3;letter-spacing:-.02em}
+.sub{color:var(--muted);margin-top:8px}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:24px 24px;margin:20px 0;
+}
+h2{font-size:1.15rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.step-num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;background:var(--accent);
+  color:var(--accent-fg);font-size:.85rem;font-weight:600;flex:none;
+}
+p{margin:8px 0}
+ul{padding-left:1.3em;margin:8px 0}
+li{margin:4px 0}
+code,pre{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  background:var(--code-bg);border-radius:6px;font-size:.88em;
+}
+code{padding:2px 6px}
+pre{padding:14px 16px;overflow-x:auto;margin:10px 0}
+pre code{background:none;padding:0}
+.btn{
+  display:inline-block;background:var(--accent);color:var(--accent-fg);
+  padding:13px 26px;border-radius:10px;font-weight:600;text-decoration:none;
+  font-size:1.02rem;
+}
+.btn:active{opacity:.85}
+.hint{color:var(--muted);font-size:.9rem;margin-top:10px}
+.tag{color:var(--ok);font-weight:600}
+.warn{color:var(--warn)}
+a{color:var(--accent)}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.92rem}
+td,th{border:1px solid var(--border);padding:8px 12px;text-align:left}
+th{background:var(--code-bg)}
+footer{color:var(--muted);font-size:.85rem;margin-top:40px;text-align:center}
+.copybox{display:flex;gap:8px;align-items:stretch;margin:10px 0}
+.copybox pre{flex:1;margin:0}
+.copybox button{
+  border:1px solid var(--border);background:var(--card);color:var(--fg);
+  border-radius:8px;padding:0 16px;cursor:pointer;font-size:.9rem;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>po0 防火墙自动加白 <span style="color:var(--muted)">· Surge 模块</span></h1>
+  <p class="sub">自动把设备当前出口 IP 加入 po0 防火墙白名单。支持多台机器（多 token）、蜂窝网络优化、坑位记账，加白后才能连上开启了防火墙的 po0 机器。</p>
+</header>
+
+<div class="card" style="text-align:center;padding:32px 24px">
+  <a class="btn" href="surge:///install-module?url=https%3A%2F%2Fraw.githubusercontent.com%2Freallinzc%2Fpo0fw%2Fmain%2Fpo0-firewall-whitelist.sgmodule">⚡ 一键安装到 Surge</a>
+  <p class="hint">需要 Surge iOS / Surge Mac 已安装。点击后 Surge 会弹出模块安装确认。</p>
+  <div class="copybox">
+    <pre><code id="mod-url">https://raw.githubusercontent.com/reallinzc/po0fw/main/po0-firewall-whitelist.sgmodule</code></pre>
+    <button onclick="navigator.clipboard.writeText(document.getElementById('mod-url').textContent).then(()=>this.textContent='已复制')">复制</button>
+  </div>
+  <p class="hint">按钮无效时，复制上面的地址到 Surge → 模块 → 从 URL 安装。</p>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">1</span>获取 token</h2>
+  <p>在 po0 控制台的机器详情页开启「防火墙加白」功能，复制生成的 API token（<code>pgnfw_</code> 开头）。一台机器对应一个 token。</p>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">2</span>安装模块并填入 token</h2>
+  <p>点上方按钮安装模块，安装时（或之后在模块设置里）填写参数 <code>tokens</code>：</p>
+  <pre><code>单台机器： pgnfw_xxxxxxxx
+多台机器： pgnfw_xxxxxxxx,pgnfw_yyyyyyyy</code></pre>
+  <p>多个 token 用<strong>英文逗号</strong>分割，脚本会依次为每台机器加白。</p>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">3</span>完成，看面板</h2>
+  <p>之后无需任何操作：<strong>切换网络时立即</strong>、以及<strong>每 2 分钟</strong>自动检查一次，出口 IP 变了才会真正写入白名单。Surge 首页会多一个面板：</p>
+  <pre><code>po0 加白 1/1 · 出口 203.0.113.10
+#1 ✅ 3/5
+    203.0.113.10 ←
+    198.51.100.7 📶
+    192.0.2.15</code></pre>
+  <table>
+    <tr><th>标记</th><th>含义</th></tr>
+    <tr><td><code>←</code></td><td>当前出口 IP</td></tr>
+    <tr><td><code>📶</code></td><td>本设备在蜂窝网络下加白的 IP</td></tr>
+    <tr><td><code>3/5</code></td><td>白名单坑位占用 / 上限</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>🧠 设计说明</h2>
+  <ul>
+    <li><span class="tag">省坑位</span>：每次先只读查询，当前出口已在白名单就不写入。白名单上限 5 个且 API 无删除能力，省着用很重要。</li>
+    <li><span class="tag">蜂窝优化</span>：蜂窝出口是 CGNAT，IP 变化频繁。自动加白在 24 小时内最多为蜂窝消耗 2 个坑位，超限后暂停并通知；<strong>点面板手动刷新不受限</strong>，需要连机器时点一下即可加白。</li>
+    <li><span class="tag">安静运行</span>：状态用 Surge 持久化存储记账，只在失败、限频或消耗新坑位时才推送通知。</li>
+    <li><span class="warn">注意</span>：坑位满后旧 IP 需到 po0 控制台手动删除；模块不显示、也不上传你的 token。</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>❓ 常见问题</h2>
+  <p><strong>Q: 走代理时会把代理服务器 IP 加白吗？</strong><br>
+  不会。模块自带 <code>DOMAIN,console.po0.com,DIRECT</code> 规则，API 请求始终直连，看到的是设备真实出口 IP。</p>
+  <p><strong>Q: 家宽换 IP 后多久生效？</strong><br>
+  网络切换事件是即时的；纯粹的公网 IP 变更最迟 2 分钟内被 cron 捕捉。</p>
+  <p><strong>Q: 支持几台 po0 机器？</strong><br>
+  不限，tokens 逗号分割即可，面板按 #1 #2 … 分行显示。</p>
+</div>
+
+<footer>
+  源码与更新：<a href="https://github.com/reallinzc/po0fw">github.com/reallinzc/po0fw</a>
+</footer>
+
+</div>
+</body>
+</html>
