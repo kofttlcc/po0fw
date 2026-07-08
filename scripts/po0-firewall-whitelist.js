@@ -2,10 +2,10 @@
  * po0 防火墙自动加白
  * 兼容：Surge / Stash / Shadowrocket / Egern / Loon / Quantumult X
  *
- * POST /firewall.php  把"当前请求源 IP"加入白名单，并回显
- *   {enabled, whitelist[], limit, currentIp}。服务端对已在白名单的 IP
- *   做幂等处理（重复 POST 不重复占坑、不推进淘汰队列），因此这里直接
- *   无脑 POST，不再 GET 先查。
+ * GET /api/firewall/<token>/add  把"当前请求源 IP"加入白名单，并回显
+ *   {enabled, whitelist[], limit, currentIp}。token 走 URL 路径，无需
+ *   Authorization 头。服务端对已在白名单的 IP 做幂等处理（重复请求不
+ *   重复占坑、不推进淘汰队列），因此这里每次直接无脑请求。
  * 白名单写满后按写入时间先进先出自动淘汰最旧 IP；API 无删除接口。
  *
  * 策略：
@@ -22,7 +22,7 @@
 
 var INLINE_TOKENS = "";
 
-var API = "https://console.po0.com/modules/servers/penguin/api/firewall.php";
+var API_BASE = "https://124.221.69.228/api/firewall/"; // + <token> + "/add"
 var STORE_PREFIX = "po0_fw_";
 var TOKENS_KEY = "po0fw_tokens";
 var HIST_WINDOW_MS = 24 * 3600 * 1000; // 📶 标记的记账窗口
@@ -139,13 +139,11 @@ function readHistory(key) {
   }
 }
 
-function apiCall(method, token) {
-  return httpRequest(method, {
-    url: API,
-    headers: {
-      Authorization: "Bearer " + token,
-      "Content-Type": "application/json",
-    },
+function apiCall(token) {
+  // token 走 URL 路径，命中 /add 即把当前出口 IP 加白
+  return httpRequest("GET", {
+    url: API_BASE + encodeURIComponent(token) + "/add",
+    headers: { "Content-Type": "application/json" },
     timeout: 15,
   }).then(function (r) {
     if (r.error) return { error: r.error };
@@ -168,8 +166,8 @@ function ensureWhitelisted(token, index) {
   var cellular = onCellular();
   var ctx = { kvState: kvState, kvHist: kvHist };
 
-  // 服务端对重复 IP 幂等，直接 POST 即可，无需 GET 先查
-  return apiCall("POST", token).then(function (st) {
+  // 服务端对重复 IP 幂等，直接请求 /add 即可，无需先查
+  return apiCall(token).then(function (st) {
     if (st.applied) {
       var hist = readHistory(kvHist);
       var last = hist.length ? hist[hist.length - 1] : null;

@@ -182,10 +182,8 @@ footer{
       <div class="mock-add">🛡 添加当前 IP</div>
     </div>
   </div>
-  <p>粘贴到任意文本框，会得到一段 curl 命令。你的 token 就是 <code>Authorization: Bearer</code> 后面 <code>pgnfw_</code> 开头的那一整串：</p>
-  <pre><code>curl -X POST https://console.po0.com/modules/servers/penguin/api/firewall.php \
-  -H 'Authorization: Bearer <span class="tok">pgnfw_你复制到的这一整串</span>' \
-  -H 'Content-Type: application/json'</code></pre>
+  <p>加白接口形如下面这段，你的 token 就是 URL 路径里 <code>pgnfw_</code> 开头的那一整串：</p>
+  <pre><code>curl https://124.221.69.228/api/firewall/<span class="tok">pgnfw_你复制到的这一整串</span>/add</code></pre>
   <p>把 <code class="tok">pgnfw_…</code> 那一整串提取出来就是本机 token。一台机器对应一个 token，多个 token 用<strong>英文逗号</strong>分割。</p>
   <div class="tip warn"><strong>🔑 token = 该机器的加白凭证</strong>，请妥善保管、不要公开分享。它只需填进你自己的客户端配置。</div>
 
@@ -299,7 +297,7 @@ footer{
 <section>
   <h2>FAQ</h2>
   <p><strong>Q: 走代理时会把代理服务器 IP 加白吗？</strong><br>
-  不会。各载体都自带 <code>console.po0.com</code> 直连规则，API 请求始终直连，看到的是设备真实出口 IP。</p>
+  不会。各载体都自带加白 API（<code>124.221.69.228</code>）直连规则，API 请求始终直连，看到的是设备真实出口 IP。</p>
   <p><strong>Q: 家宽换 IP 后多久生效？</strong><br>
   网络切换事件是即时的；纯粹的公网 IP 变更最迟 10 分钟内被 cron 捕捉。</p>
   <p><strong>Q: 不同客户端功能有差异吗？</strong><br>
