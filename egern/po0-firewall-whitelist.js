@@ -128,10 +128,26 @@ function sameC24(a, b) {
   );
 }
 
-async function ensure(ctx, item, index, cellular) {
+function delay(ms) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function apiCallWithRetry(ctx, token, slot, retries = 2, delayMs = 1500) {
+  await delay(delayMs);
+  const st = await apiCall(ctx, token, slot);
+  if ((st.error || !st.applied) && retries > 0 && !st.conflict) {
+    return await apiCallWithRetry(ctx, token, slot, retries - 1, 2000);
+  }
+  return st;
+}
+
+async function ensure(ctx, item, index) {
   const kvState = STORE_PREFIX + index;
   const kvHist = STORE_PREFIX + "hist_" + index;
-  const st = await apiCall(ctx, item.token, item.slot);
+  const st = await apiCallWithRetry(ctx, item.token, item.slot, 2, 1500);
+  const cellular = onCellular(ctx);
   if (st.applied) {
     const hist = readHistory(ctx, kvHist);
     const last = hist.length ? hist[hist.length - 1] : null;
@@ -178,12 +194,12 @@ export default async function (ctx) {
     return;
   }
 
-  const cellular = onCellular(ctx);
   const results = [];
   for (let i = 0; i < tokens.length; i++) {
-    results.push(await ensure(ctx, tokens[i], i, cellular));
+    results.push(await ensure(ctx, tokens[i], i));
   }
 
+  const cellular = onCellular(ctx);
   let okCount = 0;
   let exitIp = "?";
   let changed = false;
@@ -203,7 +219,7 @@ export default async function (ctx) {
 
   const title =
     "po0 加白 " + okCount + "/" + results.length + " · 出口 " + exitIp + (cellular ? " 📶" : "");
-  // 仅在出口 IP 或加白状态较上次变化时通知，例行 cron 保持安静
+  // 仅在出口 IP 或加白状态较上次变化时通知
   if (changed) {
     ctx.notify({ title: "po0 防火墙加白", subtitle: title, body: lines.join("\n") });
   }

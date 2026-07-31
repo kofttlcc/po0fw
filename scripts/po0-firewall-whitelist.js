@@ -15,7 +15,7 @@
  * 策略：
  * - 每次直接 POST 上报当前出口 IP，蜂窝与 WiFi/有线同等处理。
  * - 默认 slotless 写入：按 updated_at 触发 LRU 淘汰，被挤出的设备靠自己的
- *   cron/事件几分钟内自动补回。
+ *   切网事件自动补回。
  * - 可选固定槽位：token 后加 @N（如 pgnfw_xxx@0）→ POST .../add?slot=N，
  *   把本机 IP 钉在槽位 N，**永不被 LRU 淘汰**。槽位写入语义：
  *     · 本机 IP 已在该槽位 → 刷新 updated_at；
@@ -211,14 +211,33 @@ function apiCall(token, slot) {
   });
 }
 
+function delay(ms) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, ms);
+  });
+}
+
+function apiCallWithRetry(token, slot, retries, delayMs) {
+  retries = typeof retries === "number" ? retries : 2;
+  delayMs = typeof delayMs === "number" ? delayMs : 1500;
+  return delay(delayMs).then(function () {
+    return apiCall(token, slot).then(function (st) {
+      if ((st.error || !st.applied) && retries > 0 && !st.conflict) {
+        return apiCallWithRetry(token, slot, retries - 1, 2000);
+      }
+      return st;
+    });
+  });
+}
+
 function ensureWhitelisted(item, index) {
   var kvState = STORE_PREFIX + index;
   var kvHist = STORE_PREFIX + "hist_" + index;
-  var cellular = onCellular();
   var ctx = { kvState: kvState, kvHist: kvHist, slot: item.slot };
 
-  // 服务端对重复 IP 幂等，直接请求 /add 即可，无需先查
-  return apiCall(item.token, item.slot).then(function (st) {
+  // 增加切网延迟与重试机制，避免网卡重置瞬间请求失败
+  return apiCallWithRetry(item.token, item.slot, 2, 1500).then(function (st) {
+    var cellular = onCellular();
     if (st.applied) {
       var hist = readHistory(kvHist);
       var last = hist.length ? hist[hist.length - 1] : null;

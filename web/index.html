@@ -155,9 +155,9 @@ footer{
 
 <div class="features">
   <div class="feature"><div class="icon">📱</div><h3>六大客户端</h3><p>Surge、Loon、Stash、Shadowrocket、Egern、Quantumult X，同一份脚本内置环境兼容层。</p></div>
-  <div class="feature"><div class="icon">⚡</div><h3>即时 + 兜底</h3><p>切换网络瞬间通过 network-changed 事件触发，每 10 分钟 cron 兜底捕捉纯 IP 变更。</p></div>
+  <div class="feature"><div class="icon">⚡</div><h3>即时响应</h3><p>切换网络瞬间通过 network-changed 事件触发，内置延时与自动重试机制。</p></div>
   <div class="feature"><div class="icon">🎯</div><h3>无脑 POST</h3><p>每次直接上报出口 IP，服务端对重复 IP 幂等去重。写满按写入时间自动淘汰最旧 IP。</p></div>
-  <div class="feature"><div class="icon">🔄</div><h3>自动自愈</h3><p>被 FIFO 淘汰挤出白名单的设备，由自己的 cron / 切网事件在几分钟内自动补回。</p></div>
+  <div class="feature"><div class="icon">🔄</div><h3>自动自愈</h3><p>被 FIFO 淘汰挤出白名单的设备，由自己的切网事件自动补回。</p></div>
 </div>
 
 <section id="install">
@@ -212,7 +212,7 @@ footer{
         <a class="btn brand" href="loon://import?plugin=https%3A%2F%2Fraw.githubusercontent.com%2Freallinzc%2Fpo0fw%2Fmain%2Floon%2Fpo0-firewall-whitelist.plugin">一键安装</a>
         <button class="copy" data-url="https://raw.githubusercontent.com/reallinzc/po0fw/main/loon/po0-firewall-whitelist.plugin">复制链接</button>
       </div>
-      <p class="note">安装后进插件设置，在 <code>API tokens</code> 输入框填入 token。Loon 无面板，可在「脚本」列表手动执行 cron 脚本立即加白。</p>
+      <p class="note">安装后进插件设置，在 <code>API tokens</code> 输入框填入 token。</p>
     </div>
 
     <div class="client">
@@ -288,7 +288,7 @@ footer{
   <ul>
     <li><strong>无脑 POST</strong>：每次直接 POST 上报当前出口 IP，服务端对已在白名单的 IP 做幂等处理（不重复占坑、不推进淘汰队列），无需客户端先 GET 查询。白名单上限 5 个，写满按写入时间先进先出淘汰。</li>
     <li><strong>C 段加白</strong>：服务端按 /24 网段加白并回显（如 <code>203.0.113.0/24</code>），同段内换 IP 不消耗新坑位、不推进淘汰，家宽拨号重连通常不产生新写入。</li>
-    <li><strong>自愈</strong>：每台设备都在自动检查，就算某台设备的 IP 被淘汰挤出白名单，它自己的 cron/切网事件最迟 10 分钟内会自动补回。</li>
+    <li><strong>自愈</strong>：每台设备都在自动检查，就算某台设备的 IP 被淘汰挤出白名单，它自己的切网事件会自动补回。</li>
     <li><strong>安静运行</strong>：状态用持久化存储记账，只在失败、限频或消耗新坑位时才推送通知。</li>
     <li><strong>隐私</strong>：面板不显示 token；token 只保存在你自己的客户端配置里，仓库与页面不包含、不上传任何 token。</li>
   </ul>
@@ -302,7 +302,7 @@ footer{
   <p><strong>Q: 走代理时会把代理服务器 IP 加白吗？</strong><br>
   不会。各载体都自带加白 API（<code>124.221.69.228</code>）直连规则，API 请求始终直连，看到的是设备真实出口 IP。</p>
   <p><strong>Q: 家宽换 IP 后多久生效？</strong><br>
-  网络切换事件是即时的；纯粹的公网 IP 变更最迟 10 分钟内被 cron 捕捉。</p>
+  网络切换事件是即时触发的，并内置网络就绪延迟与自动重试。</p>
   <p><strong>Q: 不同客户端功能有差异吗？</strong><br>
   核心加白逻辑完全一致。差异：不支持 <code>$network</code> 的客户端没有 📶 蜂窝标记；Loon 无面板（可在脚本列表手动执行）；QX 无面板与脚本参数（token 走存储 key）。</p>
   <p><strong>Q: 支持几台 po0 机器？</strong><br>
