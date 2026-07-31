@@ -7,6 +7,7 @@ homepage: https://github.com/kofttlcc/po0fw
 # 可选：token 后加 @槽位（如 pgnfw_xxx@0）把本机 IP 钉在该坑位、永不被 LRU 淘汰。
 compat_arguments:
   tokens: ""
+  node: "po0-hk-snell"
 
 # 加白 API 必须直连，确保服务端看到的是本机真实出口 IP 而不是代理出口
 rules:
@@ -16,9 +17,18 @@ rules:
       no_resolve: true
 
 scriptings:
+  - schedule:
+      name: po0-fw-check
+      cron: "*/5 * * * *"
+      script_url: https://raw.githubusercontent.com/kofttlcc/po0fw/main/egern/po0-firewall-whitelist.js
+      timeout: 60
+      env:
+        tokens: "{{{tokens}}}"
+        node: "{{{node}}}"
   - network:
       name: po0-fw-network
       script_url: https://raw.githubusercontent.com/kofttlcc/po0fw/main/egern/po0-firewall-whitelist.js
       timeout: 60
       env:
         tokens: "{{{tokens}}}"
+        node: "{{{node}}}"

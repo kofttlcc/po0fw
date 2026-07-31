@@ -183,7 +183,30 @@ function describe(ctx, index, c) {
   return head + "✅ " + st.whitelist.length + "/" + st.limit + "\n    " + ips;
 }
 
+async function testNodeConnectivity(ctx, nodeName) {
+  if (!nodeName) return false;
+  try {
+    const resp = await ctx.http.get("http://cp.cloudflare.com/generate_204", {
+      policy: nodeName,
+      timeout: 5000,
+    });
+    return resp && (resp.status === 200 || resp.status === 204);
+  } catch (e) {
+    return false;
+  }
+}
+
 export default async function (ctx) {
+  const nodeName = (ctx.env && (ctx.env.node || ctx.env.test_node)) || "po0-hk-snell";
+  const isSchedule = ctx.scripting && ctx.scripting.type === "schedule";
+
+  if (isSchedule) {
+    const reachable = await testNodeConnectivity(ctx, nodeName);
+    if (reachable) {
+      return; // 节点正常连通，无需加白
+    }
+  }
+
   const tokens = parseTokens(ctx.env && ctx.env.tokens);
   if (tokens.length === 0) {
     ctx.notify({

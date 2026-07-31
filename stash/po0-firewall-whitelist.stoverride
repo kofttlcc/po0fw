@@ -17,6 +17,13 @@ script-providers:
     url: https://raw.githubusercontent.com/kofttlcc/po0fw/main/scripts/po0-firewall-whitelist.js
     interval: 86400
 
+cron:
+  script:
+    - name: po0-fw
+      cron: '*/5 * * * *'
+      timeout: 60
+      argument: tokens=
+
 tiles:
   - name: po0-fw
     interval: 300

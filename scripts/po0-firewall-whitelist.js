@@ -84,31 +84,59 @@ function httpRequest(method, opts) {
   });
 }
 
-function getArgumentTokens() {
+function getArgumentValue(key) {
   if (typeof $argument === "undefined" || $argument === null) return "";
-  // Loon 插件 argument=[{tokens}] 会注入对象形态
-  if (typeof $argument === "object") return String($argument.tokens || "");
+  if (typeof $argument === "object") return String($argument[key] || "");
   if (typeof $argument === "string" && $argument.length > 0) {
-    // Shadowrocket 等客户端可能把配置里的外层引号原样传入，先剥掉
-    if (/^["'].*["']$/.test($argument)) $argument = $argument.slice(1, -1);
-    // Loon 也可能注入 JSON 字符串
-    if ($argument.charAt(0) === "{") {
+    var argStr = $argument;
+    if (/^["'].*["']$/.test(argStr)) argStr = argStr.slice(1, -1);
+    if (argStr.charAt(0) === "{") {
       try {
-        return String(JSON.parse($argument).tokens || "");
+        return String(JSON.parse(argStr)[key] || "");
       } catch (e) {}
     }
-    // Surge/Stash 风格 tokens=xxx&...
-    var pairs = $argument.split("&");
+    var pairs = argStr.split("&");
     for (var i = 0; i < pairs.length; i++) {
       var idx = pairs[i].indexOf("=");
-      if (idx > 0 && pairs[i].slice(0, idx) === "tokens") {
+      if (idx > 0 && pairs[i].slice(0, idx) === key) {
         return decodeURIComponent(pairs[i].slice(idx + 1));
       }
     }
-    // 直接把整串当 token 填的兜底（如 Loon argument="pgnfw_..."）
-    if ($argument.indexOf("pgnfw_") === 0) return $argument;
   }
   return "";
+}
+
+function getArgumentTokens() {
+  return getArgumentValue("tokens") || (typeof $argument === "string" && $argument.indexOf("pgnfw_") === 0 ? $argument : "");
+}
+
+function getTestNode() {
+  return getArgumentValue("node") || getArgumentValue("test_node") || "po0-hk-snell";
+}
+
+function testNodeConnectivity(nodeName) {
+  return new Promise(function (resolve) {
+    if (!nodeName) {
+      resolve(false);
+      return;
+    }
+    var opts = {
+      url: "http://cp.cloudflare.com/generate_204",
+      timeout: 5
+    };
+    if (isQX) {
+      opts.opts = { policy: nodeName };
+    } else if (isSurgeLike) {
+      opts.node = nodeName;
+    }
+    httpRequest("GET", opts).then(function (r) {
+      if (!r.error && (r.status === 204 || r.status === 200)) {
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    });
+  });
 }
 
 function onCellular() {
@@ -292,14 +320,7 @@ var tokens = (getArgumentTokens() || storeRead(TOKENS_KEY) || INLINE_TOKENS || "
     return { token: s.slice(0, at), slot: isNaN(n) ? null : n };
   });
 
-if (tokens.length === 0) {
-  notify(
-    "po0 防火墙加白",
-    "未配置 token",
-    "模块参数 tokens / 存储 key po0fw_tokens / 脚本内 INLINE_TOKENS 三选一填入 pgnfw_ token"
-  );
-  finish("po0 加白：未配置 token", "请填入 pgnfw_ token，多个用 | 分割", false);
-} else {
+function runWhitelist() {
   Promise.all(
     tokens.map(function (t, i) {
       return ensureWhitelisted(t, i);
@@ -328,10 +349,36 @@ if (tokens.length === 0) {
       "po0 加白 " + okCount + "/" + results.length + " · 出口 " + exitIp + (onCellular() ? " 📶" : "");
     var content = lines.join("\n");
 
-    // 仅在出口 IP 或加白状态较上次变化时通知，例行 POST 保持安静
     if (changed) {
       notify("po0 防火墙加白", title, content);
     }
     finish(title, content, allOk);
   });
+}
+
+if (tokens.length === 0) {
+  notify(
+    "po0 防火墙加白",
+    "未配置 token",
+    "模块参数 tokens / 存储 key po0fw_tokens / 脚本内 INLINE_TOKENS 三选一填入 pgnfw_ token"
+  );
+  finish("po0 加白：未配置 token", "请填入 pgnfw_ token，多个用 | 分割", false);
+} else {
+  var isCron =
+    (typeof $script !== "undefined" && $script.type === "cron") ||
+    (typeof $cron !== "undefined");
+
+  if (isCron) {
+    var nodeName = getTestNode();
+    testNodeConnectivity(nodeName).then(function (reachable) {
+      if (reachable) {
+        if (isQX) $done();
+        else $done({});
+      } else {
+        runWhitelist();
+      }
+    });
+  } else {
+    runWhitelist();
+  }
 }
